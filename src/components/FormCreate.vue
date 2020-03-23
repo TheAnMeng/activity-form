@@ -7,8 +7,10 @@
             <center>
               <h3>{{title}}</h3>
             </center>
+            <div v-for="element in list2" :key="element.id" v-html="element.text"></div>
           </div>
         </aside>
+
         <section class="el-container center-container is-vertical">
           <header class="el-header btn-bar" style="height: 45px;">
             <button type="button" class="el-button el-button--text el-button--medium">
@@ -57,12 +59,114 @@
                     </span>
                   </center>
                   <draggable :list="list2" group="people" class="dragArea list-group" @change="log">
-                    <div
-                      class="list-group-item"
-                      v-for="element in list2"
-                      :key="element.id"
-                      v-html="element.text"
-                    ></div>
+                    <div class="list-group-item" v-for="(element,idx) in list2" :key="element.id">
+                      <span v-if="element.type == 1" class="span-input">
+                        <input class="balloon balloon-create" type="text" placeholder="单行文本" />
+                        <el-row class="el-row-right">
+                          <el-button
+                            type="danger"
+                            icon="el-icon-delete"
+                            circle
+                            @click="removeAt(idx)"
+                          ></el-button>
+                          <el-button
+                            type="success"
+                            class="el-button-create"
+                            icon="el-icon-copy-document"
+                            circle
+                            @click="addSingle(element,idx)"
+                          ></el-button>
+                        </el-row>
+                      </span>
+                      <el-collapse
+                        v-if="element.type == 2"
+                        v-model="activeNames"
+                        @change="handleChange"
+                        style="height:35px;border-top: 0px;border-bottom: 0px;position: relative;"
+                      >
+                        <el-collapse-item title="单行文本" class="text-create" name="1">
+                          <div class="text-design">
+                            <el-form
+                              :model="ruleForm"
+                              ref="ruleForm"
+                              label-width="100px"
+                              class="demo-ruleForm"
+                            >
+                              <el-form-item label="活动名称" prop="name">
+                                <el-input v-model="ruleForm.name"></el-input>
+                              </el-form-item>
+                              <el-form-item label="活动区域" prop="region">
+                                <el-select v-model="ruleForm.region" placeholder="请选择活动区域">
+                                  <el-option label="区域一" value="shanghai"></el-option>
+                                  <el-option label="区域二" value="beijing"></el-option>
+                                </el-select>
+                              </el-form-item>
+                              <el-form-item label="活动时间" required>
+                                <el-col :span="11">
+                                  <el-form-item prop="date1">
+                                    <el-date-picker
+                                      type="date"
+                                      placeholder="选择日期"
+                                      v-model="ruleForm.date1"
+                                      style="width: 100%;"
+                                    ></el-date-picker>
+                                  </el-form-item>
+                                </el-col>
+                                <el-col class="line" :span="2">-</el-col>
+                                <el-col :span="11">
+                                  <el-form-item prop="date2">
+                                    <el-time-picker
+                                      placeholder="选择时间"
+                                      v-model="ruleForm.date2"
+                                      style="width: 100%;"
+                                    ></el-time-picker>
+                                  </el-form-item>
+                                </el-col>
+                              </el-form-item>
+                              <el-form-item label="即时配送" prop="delivery">
+                                <el-switch v-model="ruleForm.delivery"></el-switch>
+                              </el-form-item>
+                              <el-form-item label="活动性质" prop="type">
+                                <el-checkbox-group v-model="ruleForm.type">
+                                  <el-checkbox label="美食/餐厅线上活动" name="type"></el-checkbox>
+                                  <el-checkbox label="地推活动" name="type"></el-checkbox>
+                                  <el-checkbox label="线下主题活动" name="type"></el-checkbox>
+                                  <el-checkbox label="单纯品牌曝光" name="type"></el-checkbox>
+                                </el-checkbox-group>
+                              </el-form-item>
+                              <el-form-item label="特殊资源" prop="resource">
+                                <el-radio-group v-model="ruleForm.resource">
+                                  <el-radio label="线上品牌商赞助"></el-radio>
+                                  <el-radio label="线下场地免费"></el-radio>
+                                </el-radio-group>
+                              </el-form-item>
+                              <el-form-item label="活动形式" prop="desc">
+                                <el-input type="textarea" v-model="ruleForm.desc"></el-input>
+                              </el-form-item>
+                              <el-form-item>
+                                <el-button type="primary" @click="submitForm('ruleForm')">立即创建</el-button>
+                                <el-button @click="resetForm('ruleForm')">重置</el-button>
+                              </el-form-item>
+                            </el-form>
+                          </div>
+                        </el-collapse-item>
+                        <el-row class="el-row-right">
+                          <el-button
+                            type="danger"
+                            icon="el-icon-delete"
+                            circle
+                            @click="removeAt(idx)"
+                          ></el-button>
+                          <el-button
+                            type="success"
+                            class="el-button-create"
+                            icon="el-icon-copy-document"
+                            circle
+                            @click="addSingle(element,idx)"
+                          ></el-button>
+                        </el-row>
+                      </el-collapse>
+                    </div>
                   </draggable>
                 </div>
               </form>
@@ -76,12 +180,13 @@
               tag="ul"
               v-model="list"
               :group="{ name: 'people', pull: 'clone', put: false }"
+              :clone="cloneDog"
             >
               <li
                 class="form-edit-widget-label"
                 v-for="element in list"
                 :key="element.id"
-                @click="add"
+                @click="addSingleText"
               >
                 <a>
                   <i class="el-icon-postcard"></i>
@@ -101,19 +206,17 @@ const message = [
   {
     id: 1,
     name: "单行文本",
+    type: 1,
     text:
-      "<span class='span-input'><input class='balloon' type='text' placeholder='单行文本' /></span>",
-    type: 1
+      '<span class="span-input"><input class="balloon" type="text" placeholder="单行文本" /><label>单行文本</label></span>'
   },
   {
     id: 2,
     name: "多行文本",
-    text:
-      '<div role="tablist" aria-multiselectable="true" class="el-collapse"><div class="el-collapse-item"><div role="tab" aria-controls="el-collapse-content-4938" aria-describedby="el-collapse-content-4938"><div role="button" id="el-collapse-head-4938" tabindex="0" class="el-collapse-item__header">一致性 Consistency<i class="el-collapse-item__arrow el-icon-arrow-right"></i></div></div><div role="tabpanel" aria-labelledby="el-collapse-head-4938" id="el-collapse-content-4938" class="el-collapse-item__wrap" data-old-padding-top="" data-old-padding-bottom="" data-old-overflow="" style="display: none;" aria-hidden="true"><div class="el-collapse-item__content"><div>与现实生活一致：与现实生活的流程、逻辑保持一致，遵循用户习惯的语言和概念；</div> <div>在界面中一致：所有的元素和结构需保持一致，比如：设计样式、图标和文本、元素的位置等。</div></div></div></div> <div class="el-collapse-item"><div role="tab" aria-controls="el-collapse-content-5358" aria-describedby="el-collapse-content-5358"><div role="button" id="el-collapse-head-5358" tabindex="0" class="el-collapse-item__header">反馈 Feedback<i class="el-collapse-item__arrow el-icon-arrow-right"></i></div></div><div role="tabpanel" aria-labelledby="el-collapse-head-5358" id="el-collapse-content-5358" class="el-collapse-item__wrap" data-old-padding-top="" data-old-padding-bottom="" data-old-overflow="" style="display: none;" aria-hidden="true"><div class="el-collapse-item__content"><div>控制反馈：通过界面样式和交互动效让用户可以清晰的感知自己的操作；</div> <div>页面反馈：操作后，通过页面元素的变化清晰地展现当前状态。</div></div></div></div> <div class="el-collapse-item"><div role="tab" aria-controls="el-collapse-content-3353" aria-describedby="el-collapse-content-3353"><div role="button" id="el-collapse-head-3353" tabindex="0" class="el-collapse-item__header">效率 Efficiency<i class="el-collapse-item__arrow el-icon-arrow-right"></i></div></div><div role="tabpanel" aria-labelledby="el-collapse-head-3353" id="el-collapse-content-3353" class="el-collapse-item__wrap" data-old-padding-top="" data-old-padding-bottom="" data-old-overflow="" style="display: none;" aria-hidden="true"><div class="el-collapse-item__content"><div>简化流程：设计简洁直观的操作流程；</div> <div>清晰明确：语言表达清晰且表意明确，让用户快速理解进而作出决策；</div> <div>帮助用户识别：界面简单直白，让用户快速识别而非回忆，减少用户记忆负担。</div></div></div></div> <div class="el-collapse-item"><div role="tab" aria-controls="el-collapse-content-1547" aria-describedby="el-collapse-content-1547"><div role="button" id="el-collapse-head-1547" tabindex="0" class="el-collapse-item__header">可控 Controllability<i class="el-collapse-item__arrow el-icon-arrow-right"></i></div></div><div role="tabpanel" aria-hidden="true" aria-labelledby="el-collapse-head-1547" id="el-collapse-content-1547" class="el-collapse-item__wrap" style="display: none;"><div class="el-collapse-item__content"><div>用户决策：根据场景可给予用户操作建议或安全提示，但不能代替用户进行决策；</div> <div>结果可控：用户可以自由的进行操作，包括撤销、回退和终止当前操作等。</div></div></div></div></div>',
     type: 2
   }
 ];
-let idGlobal = 8;
+let idGlobal = 2;
 let html = "";
 export default {
   name: "hello",
@@ -122,13 +225,56 @@ export default {
   },
   data() {
     return {
-      activeNames: ["1"],
       title: "标题",
       list: message,
       list2: [],
-      editable: true,
-      isDragging: false,
-      delayedDragging: false
+      ruleForm: {
+        name: "",
+        region: "",
+        date1: "",
+        date2: "",
+        delivery: false,
+        type: [],
+        resource: "",
+        desc: ""
+      },
+      rules: {
+        name: [
+          { required: true, message: "请输入活动名称", trigger: "blur" },
+          { min: 3, max: 5, message: "长度在 3 到 5 个字符", trigger: "blur" }
+        ],
+        region: [
+          { required: true, message: "请选择活动区域", trigger: "change" }
+        ],
+        date1: [
+          {
+            type: "date",
+            required: true,
+            message: "请选择日期",
+            trigger: "change"
+          }
+        ],
+        date2: [
+          {
+            type: "date",
+            required: true,
+            message: "请选择时间",
+            trigger: "change"
+          }
+        ],
+        type: [
+          {
+            type: "array",
+            required: true,
+            message: "请至少选择一个活动性质",
+            trigger: "change"
+          }
+        ],
+        resource: [
+          { required: true, message: "请选择活动资源", trigger: "change" }
+        ],
+        desc: [{ required: true, message: "请填写活动形式", trigger: "blur" }]
+      }
     };
   },
   methods: {
@@ -138,13 +284,37 @@ export default {
     handleChange(val) {
       console.log(val);
     },
-    add: function() {
-      this.list2.push({
-        name: "cat" + idGlobal++,
+    removeAt(idx) {
+      this.list2.splice(idx, 1);
+    },
+    cloneDog({ id, name, type }) {
+      return {
         id: idGlobal++,
+        name: name,
+        type: type,
         text:
-          "<span class='span-input'><input class='balloon' type='text' placeholder='单行文本' /></span>"
-      });
+          '<span class="span-input"><input class="balloon" type="text" placeholder="单行文本" /><label>单行文本</label></span>'
+      };
+    },
+    addSingleText: function() {
+      var arr = {
+        id: idGlobal++,
+        name: "单行文本",
+        type: 1,
+        text:
+          '<span class="span-input"><input class="balloon" type="text" placeholder="单行文本" /><label>单行文本</label></span>'
+      };
+      this.list2.push(arr);
+    },
+    addSingle: function(element, idx) {
+      var arr = {
+        id: idGlobal++,
+        name: element.name,
+        type: element.type,
+        text:
+          '<span class="span-input"><input class="balloon" type="text" placeholder="单行文本" /><label>单行文本</label></span>'
+      };
+      this.list2.splice(idx + 1, 0, arr);
     }
   },
   computed: {
@@ -228,7 +398,7 @@ export default {
   padding: 0 10px 0px;
   margin-top: 35px;
 }
-.components-list .form-edit-widget-label {
+.form-edit-widget-label {
   font-size: 12px;
   display: block;
   width: 40%;
@@ -322,8 +492,16 @@ export default {
   text-indent: 60px;
   transition: all 0.3s ease-in-out;
 }
+.balloon-create {
+  text-indent: 0px;
+}
 .balloon::-webkit-input-placeholder {
-  color: #efefef;
+  color: #fff;
+  text-indent: 0;
+  font-weight: 300;
+}
+.balloon-create::-webkit-input-placeholder {
+  color: #032429;
   text-indent: 0;
   font-weight: 300;
 }
@@ -402,5 +580,71 @@ export default {
   outline: 0;
   transition: all 0.3s ease-in-out;
   text-align: center;
+}
+.el-row-right {
+  text-align: right;
+}
+.el-button-create {
+  margin-left: 0px !important;
+}
+
+.balloon + div {
+  display: inline-block;
+  position: absolute;
+  top: 0px;
+  right: 0;
+  bottom: 8px;
+  color: #032429;
+  font-size: 11px;
+  font-weight: 700;
+  opacity: 1;
+}
+.text-create + div {
+  display: inline-block;
+  position: absolute;
+  top: 0px;
+  right: 0;
+  bottom: 8px;
+  color: #032429;
+  font-size: 11px;
+  font-weight: 700;
+  opacity: 1;
+}
+.text-create {
+  display: inline-block;
+  width: 100%;
+  font-family: "Open Sans", sans;
+  font-weight: 400;
+  color: #377d6a;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  outline: 0;
+  -webkit-transition: all 0.3s ease-in-out;
+  transition: all 0.3s ease-in-out;
+}
+.text-create .el-collapse-item__header {
+  height: 35px;
+  line-height: 35px;
+  font-size: 12px;
+  padding: 0px 0 0px 15px;
+  border-bottom: 0px;
+}
+.text-create .el-collapse-item__content {
+  font-size: 12px;
+}
+.text-create .el-collapse-item__arrow {
+  display: none;
+}
+.text-create .text-design {
+  padding: 0px 5px 0px 5px;
+}
+.text-create .el-collapse-item__content {
+  padding-bottom: 0px;
+}
+.list-group {
+  min-height: 100%;
+}
+.el-button.is-circle {
+  padding: 4px;
 }
 </style>
